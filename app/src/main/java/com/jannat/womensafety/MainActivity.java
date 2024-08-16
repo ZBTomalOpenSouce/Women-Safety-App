@@ -13,6 +13,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -119,21 +120,33 @@ public class MainActivity extends AppCompatActivity {
 
     private void setUpSOS() {
 
+        // For Android 13 and above, notify the user that they might need to confirm the call manually
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CALL_PHONE}, 102);
             return;
         }
-
         Intent callIntent = new Intent(Intent.ACTION_CALL);
-        callIntent.setData(Uri.parse("tel:999"));
+        callIntent.setData(Uri.parse("tel:999")); // Replace "999" with the emergency number
 
         try {
             startActivity(callIntent);
         } catch (SecurityException e) {
             Toast.makeText(MainActivity.this, "Permission denied to make a call", Toast.LENGTH_SHORT).show();
         }
-
     }
 
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 102) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                setUpSOS();
+            } else {
+                Toast.makeText(this, "Permission denied. Cannot make SOS call.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
 }
