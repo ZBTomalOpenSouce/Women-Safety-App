@@ -1,6 +1,7 @@
 package com.jannat.womensafety;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -27,8 +28,6 @@ public class MainActivity extends AppCompatActivity {
     //set view binding
     public ActivityMainBinding binding;
 
-    private FusedLocationProviderClient fusedLocationClient;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,41 +39,51 @@ public class MainActivity extends AppCompatActivity {
 
     private void setUpOnClickListeners() {
 
-        binding.SetEmergencyContact.setOnClickListener(v -> {
-            setEmergencyContact();
-        });
+        binding.SetEmergencyContact.setOnClickListener(v -> setEmergencyContact());
 
-        binding.ShareLocation.setOnClickListener(v -> {
-            SetUpShareLocation();
-        });
+        binding.ShareLocation.setOnClickListener(v -> SetUpShareLocation());
 
-        binding.SOS.setOnClickListener(v -> {
-            setUpSOS();
-        });
+        binding.SOS.setOnClickListener(v -> setUpSOS());
     }
 
+    private void setEmergencyContact() {
 
-    private void setUpSOS() {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(MainActivity.this);
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CALL_PHONE}, 102);
-            return;
-        }
+        @SuppressLint("InflateParams") View bottomSheetView = LayoutInflater.from(MainActivity.this).inflate(
+                R.layout.bottom_sheet_contact, null);
 
-        Intent callIntent = new Intent(Intent.ACTION_CALL);
-        callIntent.setData(Uri.parse("tel:999"));
+        EditText editTextPhone = bottomSheetView.findViewById(R.id.editTextPhone);
+        MaterialCardView buttonSaveContact = bottomSheetView.findViewById(R.id.btnSaveContact);
 
-        try {
-            startActivity(callIntent);
-        } catch (SecurityException e) {
-            Toast.makeText(MainActivity.this, "Permission denied to make a call", Toast.LENGTH_SHORT).show();
-        }
+        SharedPreferences sharedPreferences = getSharedPreferences("WomenSafetyApp", MODE_PRIVATE);
+        String savedContact = sharedPreferences.getString("emergency_contact", "");
+        editTextPhone.setText(savedContact);
+
+        buttonSaveContact.setOnClickListener(v -> {
+            String contact = editTextPhone.getText().toString().trim();
+
+            if (!contact.isEmpty()) {
+                SharedPreferences.Editor editor = sharedPreferences.edit();
+                editor.putString("emergency_contact", contact);
+                editor.apply();
+                bottomSheetDialog.dismiss();
+            } else {
+                editTextPhone.setError("Please enter a valid phone number");
+            }
+
+            Toast.makeText(MainActivity.this, "Contact saved successfully", Toast.LENGTH_SHORT).show();
+        });
+
+        bottomSheetDialog.setContentView(bottomSheetView);
+        bottomSheetDialog.show();
+
 
     }
 
     private void SetUpShareLocation() {
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -108,44 +117,23 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void setEmergencyContact() {
+    private void setUpSOS() {
 
-        // Create a BottomSheetDialog
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(MainActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CALL_PHONE}, 102);
+            return;
+        }
 
-        // Inflate a new view instance
-        View bottomSheetView = LayoutInflater.from(MainActivity.this).inflate(
-                R.layout.bottom_sheet_contact, null);
+        Intent callIntent = new Intent(Intent.ACTION_CALL);
+        callIntent.setData(Uri.parse("tel:999"));
 
-        EditText editTextPhone = bottomSheetView.findViewById(R.id.editTextPhone);
-        MaterialCardView buttonSaveContact = bottomSheetView.findViewById(R.id.btnSaveContact);
-
-        // Load existing contact if available
-        SharedPreferences sharedPreferences = getSharedPreferences("WomenSafetyApp", MODE_PRIVATE);
-        String savedContact = sharedPreferences.getString("emergency_contact", "");
-        editTextPhone.setText(savedContact);
-
-        // Set button click listener
-        buttonSaveContact.setOnClickListener(v -> {
-            String contact = editTextPhone.getText().toString().trim();
-
-            if (!contact.isEmpty()) {
-                // Save the contact
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                editor.putString("emergency_contact", contact);
-                editor.apply();
-                bottomSheetDialog.dismiss();
-            } else {
-                editTextPhone.setError("Please enter a valid phone number");
-            }
-
-            Toast.makeText(MainActivity.this, "Contact saved successfully", Toast.LENGTH_SHORT).show();
-        });
-
-        // Set the content view of the BottomSheetDialog
-        bottomSheetDialog.setContentView(bottomSheetView);
-        bottomSheetDialog.show();
-
+        try {
+            startActivity(callIntent);
+        } catch (SecurityException e) {
+            Toast.makeText(MainActivity.this, "Permission denied to make a call", Toast.LENGTH_SHORT).show();
+        }
 
     }
+
+
 }
